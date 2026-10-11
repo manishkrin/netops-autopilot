@@ -1,0 +1,15 @@
+{
+  "event_id": "example-router-edge-01-0001",
+  "source": "example-generator",
+  "device": "router-edge-01",
+  "interface": "GigabitEthernet0/1",
+  "event_type": "interface_flap",
+  "severity": "critical",
+  "observed_at": "2026-10-11T10:00:00Z",
+  "message": "Interface changed state to down",
+  "attributes": {
+    "scenario": "interface-flap",
+    "synthetic": true
+  }
+}
+

@@ -1,0 +1,2 @@
+"""Safe synthetic alert generation."""
+
