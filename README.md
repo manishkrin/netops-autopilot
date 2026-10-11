@@ -64,6 +64,19 @@ flowchart LR
 
 The AI is an analyst, not an autonomous network operator. It must cite collected evidence, express uncertainty, and never bypass policy or approval controls.
 
+## Project plan
+
+| Period | What you actually ship | Definition of done |
+|--------|--------|--------|
+| Month 1 | Alert simulator, webhook ingestion, event storage | 1,000 synthetic events successfully ingested |
+| Month 2 | Correlation engine and incident grouping | Duplicate events and grouped incidents handled correctly |
+| Month 3 | Network investigation engine | Simulated diagnostics generate evidence-backed findings |
+| Month 4 | AI analysis with structured outputs | AI explains likely causes with uncertainty and cited evidence |
+| Month 5 | Ansible execution with approvals | One safe, repeatable remediation workflow demonstrated |
+| Month 6 | Tests, observability, load tests, documentation | Public demo, reproducible deployment, benchmark report |
+
+See the [detailed roadmap](docs/roadmap.md) for more context.
+
 ## Repository map
 
 ```text
