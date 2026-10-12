@@ -12,3 +12,9 @@ build/
 var/
 benchmark-results/
 
+# Containerlab runtime output (generated)
+clab-*/
+container-lab-setup/clab-*/
+
+.DS_Store
+**/.DS_Store
