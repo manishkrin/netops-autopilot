@@ -122,3 +122,19 @@ If you want to remove generated runtime files too:
 ```bash
 rm -rf clab-srl02
 ```
+## Install clab-api-server
+
+URL - https://containerlab.dev/manual/api-server/#systemd-service
+
+The clab-api-server exposes Containerlab operations over an HTTP API. It is meant for cases where the lab host needs to be controlled by another program, a browser UI, or a remote user session instead of by someone typing containerlab commands directly on the host.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/srl-labs/clab-api-server/main/install.sh | sudo bash -s -- install
+```
+
+## Run container-lab api server in a container
+
+```bash
+sudo containerlab tools api-server start \
+  --labs-dir /opt/containerlab/labs
+```
