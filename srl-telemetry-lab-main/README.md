@@ -132,6 +132,19 @@ Using containerlab's ability to expose ports of the containers to the host, the 
 * Grafana: <http://localhost:3000>. Anonymous access is enabled; no credentials are required. If you want to act as an admin, use `admin/admin` credentials.
 * Prometheus: <http://localhost:9090/graph>
 
+### Alerting
+
+Grafana alert rules are provisioned from disk under [configs/grafana/alerting/](configs/grafana/alerting/), mounted into the `grafana` container at `/etc/grafana/provisioning/alerting`. Rules defined there are loaded automatically on every container start/redeploy (including `containerlab deploy --reconfigure`), so they don't need to be recreated manually through the UI.
+
+The lab currently ships one rule, [interface-down-rules.yml](configs/grafana/alerting/interface-down-rules.yml):
+
+* **Leaf1 Interface Down** (folder `NetOps Alerts`, group `interface-health`) queries `interface_oper_state{source="leaf1", interface_name=~"e1-1|e1-49|e1-50"}` from Prometheus and fires when any of those interfaces reports `0` (down) for at least 10 seconds.
+* The query is scoped to only the interfaces actually cabled for leaf1 in [st.clab.yml](st.clab.yml) (`e1-1` to `client1`, `e1-49` to `spine1`, `e1-50` to `spine2`). Leaf1's remaining ethernet ports are unconnected and legitimately report `oper-state: down`, so they are excluded to avoid alert noise.
+* View it in Grafana under **Alerting → Alert rules → NetOps Alerts → Leaf1 Interface Down**. No notification contact point is configured out of the box (the rule uses Grafana's default no-op receiver), so firing alerts are visible in the UI/dashboard but are not emailed or paged anywhere. Add a contact point and notification policy if you want real notifications.
+* To test it, admin-disable one of the three cabled interfaces on leaf1 (e.g. `ethernet-1/49`) via its SR Linux CLI and watch the rule transition from `Normal` to `Pending` to `Alerting` in the Grafana Alerting page.
+
+The [Prometheus datasource](configs/grafana/datasource.yml) is provisioned with a fixed `uid` (`PBFA97CFB590B2093`) so that alert rules referencing it remain valid across redeploys.
+
 ## Logging stack
 
 The logging stack leverages the Alloy->Loki pipeline, where Alloy receives syslog messages, transforms labels, and ships logs to Loki, a log aggregation system.
