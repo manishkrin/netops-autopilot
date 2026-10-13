@@ -1,0 +1,60 @@
+# Grafana file-based alert provisioning.
+# Docs: https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning/
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: interface-health
+    folder: NetOps Alerts
+    interval: 1m
+    rules:
+      - uid: leaf1-iface-down
+        title: Leaf1 Interface Down
+        condition: C
+        # Only the interfaces actually cabled in st.clab.yml for leaf1:
+        # e1-1 (-> client1), e1-49 (-> spine1), e1-50 (-> spine2).
+        # The remaining ethernet ports are unconnected and legitimately
+        # report oper-state down, so they are excluded to avoid noise.
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              editorMode: code
+              expr: interface_oper_state{source="leaf1", interface_name=~"e1-1|e1-49|e1-50"}
+              instant: true
+              range: false
+              refId: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              refId: C
+              expression: A
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [1]
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+                    params: []
+        noDataState: OK
+        execErrState: Error
+        for: 10s
+        annotations:
+          summary: "Interface {{ $labels.interface_name }} on leaf1 is DOWN"
+          description: "interface_oper_state reported 0 (down) for interface {{ $labels.interface_name }} on leaf1."
+        labels:
+          severity: critical
+          node: leaf1

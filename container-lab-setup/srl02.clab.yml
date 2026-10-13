@@ -13,4 +13,4 @@ topology:
       startup-config: srl2.cfg
 
   links:
-    - endpoints: ["srl1:e1-1", "srl2:e1-1"]
+    - endpoints: [ "srl1:e1-1", "srl2:e1-1" ]
