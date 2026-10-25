@@ -135,6 +135,24 @@ NETOPS_LOG_LEVEL=DEBUG \
 uv run uvicorn netops_autopilot.api:app
 ```
 
+## Inspect the database with a web UI
+
+[`docker-compose.yml`](docker-compose.yml) runs [coleifer/sqlite-web](https://hub.docker.com/r/coleifer/sqlite-web) against the local `var/` directory so you can browse and query the SQLite database from a browser.
+
+```bash
+docker compose up -d
+```
+
+Open <http://127.0.0.1:8080>. Stop it with:
+
+```bash
+docker compose down
+```
+
+By default the UI opens `var/netops-autopilot.db`. If `NETOPS_DATABASE_PATH` points elsewhere, update the `command` in [`docker-compose.yml`](docker-compose.yml) to match the filename.
+
+This is a standalone alternative to the `sqlite-web` node already included in the [network telemetry lab](#network-telemetry-lab) topology below — use whichever you have running, but not both at once (they both bind host port `8080`).
+
 ## Network telemetry lab
 
 The repository includes a separate lab under [`srl-telemetry-lab-main/`](srl-telemetry-lab-main/README.md). [Containerlab](https://containerlab.dev/) reads `st.clab.yml` and creates a small [Nokia SR Linux](https://learn.srlinux.dev/) leaf-and-spine fabric plus its telemetry services.
@@ -153,6 +171,7 @@ The lab uses:
 - [gNMIc](https://gnmic.openconfig.net/) to subscribe to streaming telemetry.
 - [Prometheus](https://prometheus.io/docs/introduction/overview/) to store time-series metrics.
 - [Grafana](https://grafana.com/docs/grafana/latest/) to visualize telemetry and evaluate alert rules.
+- [sqlite-web](https://hub.docker.com/r/coleifer/sqlite-web) to browse the netops-autopilot alert database at <http://localhost:8080>.
 
 With Docker and Containerlab installed, deploy the lab from its directory:
 

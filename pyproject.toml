@@ -13,6 +13,7 @@ authors = [{ name = "NetOps Autopilot contributors" }]
 dependencies = [
   "fastapi>=0.115,<1.0",
   "uvicorn[standard]>=0.34,<1.0",
+  "sqlite-utils>=3.38,<4.0",
 ]
 
 [project.optional-dependencies]

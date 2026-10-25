@@ -125,12 +125,17 @@ Using the flow plugin and real telemetry data users can create interactive topol
 
 The panels for the flow plugin has been autocreated by the [clab-io-draw](https://github.com/srl-labs/clab-io-draw) tool
 
+### netops-autopilot alert database UI
+
+The `sqlite-web` node runs [coleifer/sqlite-web](https://hub.docker.com/r/coleifer/sqlite-web), binding the repository's [`../var/`](../var) directory so that `../var/netops-autopilot.db` (the default `NETOPS_DATABASE_PATH`) can be browsed and queried from a web UI whenever the lab is deployed. If `NETOPS_DATABASE_PATH` is pointed at a different file, update the `SQLITE_DATABASE` env value for the `sqlite-web` node in [st.clab.yml](st.clab.yml) to match.
+
 ### Access details
 
 Using containerlab's ability to expose ports of the containers to the host, the following services are available on the host machine:
 
 * Grafana: <http://localhost:3000>. Anonymous access is enabled; no credentials are required. If you want to act as an admin, use `admin/admin` credentials.
 * Prometheus: <http://localhost:9090/graph>
+* netops-autopilot alert database (sqlite-web): <http://localhost:8080>
 
 ### Alerting
 
@@ -140,10 +145,26 @@ The lab currently ships one rule, [interface-down-rules.yml](configs/grafana/ale
 
 * **Leaf1 Interface Down** (folder `NetOps Alerts`, group `interface-health`) queries `interface_oper_state{source="leaf1", interface_name=~"e1-1|e1-49|e1-50"}` from Prometheus and fires when any of those interfaces reports `0` (down) for at least 10 seconds.
 * The query is scoped to only the interfaces actually cabled for leaf1 in [st.clab.yml](st.clab.yml) (`e1-1` to `client1`, `e1-49` to `spine1`, `e1-50` to `spine2`). Leaf1's remaining ethernet ports are unconnected and legitimately report `oper-state: down`, so they are excluded to avoid alert noise.
-* View it in Grafana under **Alerting → Alert rules → NetOps Alerts → Leaf1 Interface Down**. No notification contact point is configured out of the box (the rule uses Grafana's default no-op receiver), so firing alerts are visible in the UI/dashboard but are not emailed or paged anywhere. Add a contact point and notification policy if you want real notifications.
+* View it in Grafana under **Alerting → Alert rules → NetOps Alerts → Leaf1 Interface Down**.
 * To test it, admin-disable one of the three cabled interfaces on leaf1 (e.g. `ethernet-1/49`) via its SR Linux CLI and watch the rule transition from `Normal` to `Pending` to `Alerting` in the Grafana Alerting page.
 
 The [Prometheus datasource](configs/grafana/datasource.yml) is provisioned with a fixed `uid` (`PBFA97CFB590B2093`) so that alert rules referencing it remain valid across redeploys.
+
+#### Forwarding alerts to netops-autopilot
+
+[configs/grafana/alerting/contact-points.yml](configs/grafana/alerting/contact-points.yml) and
+[configs/grafana/alerting/notification-policies.yml](configs/grafana/alerting/notification-policies.yml)
+route firing/resolved alerts from a Grafana `webhook` contact point to the
+netops-autopilot FastAPI server's `POST /v1/webhooks/grafana` endpoint, which
+translates Grafana's native alert payload into the `AlertInput` schema and
+ingests it the same way as `POST /v1/alerts`.
+
+To use it end to end:
+
+1. Start the API on the host so the `grafana` container can reach it: `uvicorn netops_autopilot.api:app --host 0.0.0.0 --port 8000`.
+2. Confirm the contact point's webhook URL matches your `st` docker network gateway: `docker network inspect st --format '{{(index .IPAM.Config 0).Gateway}}'`. Update `configs/grafana/alerting/contact-points.yml` if it differs from `172.80.80.1`, then `containerlab deploy --reconfigure`.
+3. Admin-disable `ethernet-1/49` on leaf1 (see above). Once the rule reaches `Alerting`, Grafana POSTs to the contact point and the alert appears via `GET /v1/alerts` (and `GET /v1/metrics`) on the API.
+4. Re-enable the interface (`admin-state enable` + `commit now`) to see the matching `resolved` alert ingested as a separate event.
 
 ## Logging stack
 

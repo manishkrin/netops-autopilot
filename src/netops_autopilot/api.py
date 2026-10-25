@@ -10,12 +10,15 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 
 from netops_autopilot.config import Settings
+from netops_autopilot.ingestion.grafana_adapter import to_alert_inputs
 from netops_autopilot.ingestion.schemas import (
     AlertIngestResult,
     AlertInput,
     AlertList,
     AlertRecord,
+    GrafanaWebhookPayload,
     IngestionMetrics,
+    WebhookIngestResult,
 )
 from netops_autopilot.ingestion.store import SQLiteAlertStore
 from netops_autopilot.logging import configure_logging
@@ -82,6 +85,29 @@ def create_app(database_path: Path | None = None) -> FastAPI:
         return AlertIngestResult(
             status="accepted" if created else "duplicate",
             alert=stored,
+        )
+
+    @application.post(
+        "/v1/webhooks/grafana",
+        response_model=WebhookIngestResult,
+        status_code=status.HTTP_202_ACCEPTED,
+        tags=["ingestion"],
+    )
+    def ingest_grafana_webhook(payload: GrafanaWebhookPayload) -> WebhookIngestResult:
+        items: list[AlertIngestResult] = []
+        accepted = 0
+        duplicate = 0
+        for alert in to_alert_inputs(payload.alerts):
+            stored, created = store.ingest(alert)
+            if created:
+                accepted += 1
+            else:
+                duplicate += 1
+            items.append(
+                AlertIngestResult(status="accepted" if created else "duplicate", alert=stored)
+            )
+        return WebhookIngestResult(
+            received=len(items), accepted=accepted, duplicate=duplicate, items=items
         )
 
     @application.get("/v1/alerts", response_model=AlertList, tags=["ingestion"])
