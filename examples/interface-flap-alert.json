@@ -1,5 +1,5 @@
 {
-  "event_id": "example-spine2-e1-1-0001",
+  "event_id": "sim-79dc1c4d3cd2-00003",
   "source": "netops-simulator",
   "device": "spine2",
   "interface": "e1-1",

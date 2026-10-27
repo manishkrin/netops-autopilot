@@ -32,7 +32,25 @@ def generate_alerts(
     duplicate_every: int = 0,
     run_id: str | None = None,
 ) -> Iterator[dict[str, Any]]:
-    """Generate interface-flap submissions; every Nth can replay its predecessor."""
+    """Generate synthetic interface-flap alerts based on the srl-telemetry-lab topology.
+
+    Alerts alternate between "down" (critical) and "up" (warning). Each down/up pair
+    targets one randomly chosen lab link (see ``LAB_LINKS``) and failure mode (see
+    ``FAILURE_MODES``); choices are seeded from the run ID so a run is reproducible.
+
+    Args:
+        count: Number of alerts to yield; must be at least 1.
+        duplicate_every: If set, every Nth alert reuses the previous event ID to
+            simulate a replay. Must be 0 (disabled) or at least 2.
+        run_id: Optional simulation identifier used for event IDs and seeding;
+            a random one is generated when omitted.
+
+    Yields:
+        Alert payloads compatible with ``AlertInput``.
+
+    Raises:
+        ValueError: If ``count`` or ``duplicate_every`` is out of range.
+    """
     if count < 1:
         raise ValueError("count must be at least 1")
     if duplicate_every == 1 or duplicate_every < 0:
