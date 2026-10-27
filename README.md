@@ -11,7 +11,7 @@ The current release is a working alert-ingestion slice with a synthetic alert si
 - Treat repeated `event_id` values as duplicates instead of storing them twice.
 - Retrieve and filter stored alerts through the API.
 - Report health and basic ingestion metrics.
-- Generate a reproducible interface-flap scenario with the included simulator.
+- Generate a reproducible interface-flap scenario with the included simulator, using randomized devices, interfaces, and failure modes drawn from the SR Linux telemetry lab topology (`spine1`/`spine2`, `leaf1`-`leaf3`, `client1`-`client3`).
 - Exercise the API and persistence behavior with automated tests.
 - Run a separate [Containerlab](https://containerlab.dev/) network and telemetry lab built around Nokia SR Linux, gNMIc, Prometheus, and Grafana.
 
@@ -65,7 +65,7 @@ In another terminal, send 25 synthetic alerts and replay every fifth event:
 uv run netops-simulator --count 25 --duplicate-every 5
 ```
 
-The summary should report 20 accepted alerts, 5 duplicates, and no failures:
+Each down/up pair targets one lab link (for example `spine2:e1-1`) with a failure mode (`link-down`, `admin-disable`, `optic-failure`, or `peer-reboot`) and records the peer device and interface in `attributes`. The summary should report 20 accepted alerts, 5 duplicates, and no failures:
 
 ```json
 {"submitted": 25, "accepted": 20, "duplicates": 5, "failed": 0}

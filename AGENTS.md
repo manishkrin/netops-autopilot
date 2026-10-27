@@ -37,7 +37,7 @@ This document gives coding agents the project context and constraints needed to 
 
 - `src/netops_autopilot/api.py`: HTTP endpoints and application wiring.
 - `src/netops_autopilot/ingestion/`: alert schemas, storage, and Grafana webhook adapter.
-- `src/netops_autopilot/simulator/`: synthetic event generation and CLI.
+- `src/netops_autopilot/simulator/`: synthetic event generation and CLI; devices and links mirror the `srl-telemetry-lab-main` topology.
 - `tests/`: API, ingestion, webhook, and simulator behavior tests.
 - `docs/project-brief.md`: product goals, success measures, and guardrails.
 - `docs/architecture.md`: module responsibilities, lifecycle, and threat boundaries.

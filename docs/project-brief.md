@@ -8,7 +8,7 @@ It is a six-month flagship portfolio project that combines network operations, P
 
 ## Reference scenario
 
-A simulated router experiences interface flapping and emits 25 alerts. The platform deduplicates and correlates them into one incident, retrieves simulated interface history and topology, identifies a likely physical-link fault, proposes safe diagnostics or remediation, asks for approval, runs an idempotent Ansible workflow, verifies the result, and records every decision and action.
+A simulated lab device (for example an SR Linux spine or leaf from the telemetry lab) experiences interface flapping and emits 25 alerts. The platform deduplicates and correlates them into one incident, retrieves simulated interface history and topology, identifies a likely physical-link fault, proposes safe diagnostics or remediation, asks for approval, runs an idempotent Ansible workflow, verifies the result, and records every decision and action.
 
 ## Product capabilities
 
