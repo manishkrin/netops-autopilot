@@ -31,11 +31,24 @@ Confirm the machine is running Debian 12:
 cat /etc/os-release
 ```
 
-Inside the VM, install [uv](https://docs.astral.sh/uv/getting-started/installation/) and the Python version required by this project:
+Inside the VM, install Git and [uv](https://docs.astral.sh/uv/getting-started/installation/), add uv to the current shell's `PATH`, and install the Python version required by this project:
 
 ```bash
+sudo apt update
+sudo apt install -y git
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source "$HOME/.local/bin/env"
 uv python install 3.12
 ```
+
+To run the container lab on Debian, install Containerlab and its Docker runtime. Containerlab's [official quick setup script](https://containerlab.dev/install/) installs Docker Engine, Docker Compose, Containerlab, and the GitHub CLI together:
+
+```bash
+export SETUP_SSHD="false"
+curl -sL https://containerlab.dev/setup | sudo -E bash -s "all"
+```
+
+The script also changes SSH server settings by default; `SETUP_SSHD="false"` disables that change. After installation, run `newgrp docker` or log out and back in to use Docker without `sudo`.
 
 Then continue with the clone and install steps below from inside the VM. Docker and Containerlab are only needed for the optional lab steps.
 
@@ -47,9 +60,13 @@ On Windows 10 (version 2004 or newer) or Windows 11, [WSL 2](https://learn.micro
 wsl --install -d Debian
 ```
 
-Open Debian from the Start menu to finish its initial setup, then run the remaining commands from its terminal. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and Python 3.12:
+Open Debian from the Start menu to finish its initial setup, then run the remaining commands from its terminal. Install Git and [uv](https://docs.astral.sh/uv/getting-started/installation/), add uv to the current shell's `PATH`, and install Python 3.12:
 
 ```bash
+sudo apt update
+sudo apt install -y git
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source "$HOME/.local/bin/env"
 uv python install 3.12
 ```
 
@@ -63,15 +80,31 @@ For the optional containerlab lab, use [Docker Desktop's WSL 2 integration](http
 
 - [Python 3.12+](https://www.python.org/downloads/)
 - [uv](https://docs.astral.sh/uv/)
-- Optional, for steps 7–8: Docker and Containerlab
+- Git
+- Optional: Docker with the Compose plugin for the database web UI (step 6); Containerlab for the lab (steps 7–8). On Debian, the Containerlab setup above installs Docker and Compose as well.
+
+Docker is not required for the API and simulator demo. The database web UI requires Docker and the Compose plugin to be running in your environment. For a Debian VM, the Containerlab setup above installs them; for OrbStack's macOS Docker engine, see its [Docker documentation](https://docs.orbstack.dev/docker/). For WSL, use [Docker Desktop's WSL 2 integration](https://docs.docker.com/desktop/features/wsl/). To run the lab on WSL, also follow the [Containerlab on Windows guide](https://containerlab.dev/windows/).
 
 ### 2. Clone and install
+
+If the repository is private, make sure your GitHub account has access. When Git prompts for credentials, enter your GitHub username and a personal access token with read access to this repository as the password; GitHub account passwords are not accepted. For a fine-grained token, grant access only to this repository and set **Contents** to **Read-only**. Do not put the token in the clone URL or share it.
 
 ```bash
 git clone https://github.com/manishkrin/netops-autopilot.git
 cd netops-autopilot
 uv sync --extra dev
 ```
+
+#### Optional: concise Bash prompt
+
+From the repository root, add the prompt script to your Bash startup file and load it in the current shell:
+
+```bash
+printf 'source "%s/netops-prompt.sh"\n' "$PWD" >> ~/.bashrc
+source ~/.bashrc
+```
+
+Add the `source` line only once. The prompt shows `../netops-autopilot/` at the repository root and keeps the relative subdirectory while you move around inside the repository, for example `../netops-autopilot/srl-telemetry-lab-main`. Outside this repository it displays the full working-directory path. The `[clab]` label is fixed in [netops-prompt.sh](netops-prompt.sh); edit `PS1` there to customize it.
 
 ### 3. Run the self-contained check
 
@@ -109,7 +142,7 @@ curl -X POST http://127.0.0.1:8000/v1/alerts \
   --data @examples/interface-flap-alert.json
 ```
 
-Alerts are stored in `var/netops-autopilot.db`. To browse it in a web UI, run `docker compose up -d` and open <http://127.0.0.1:8080>.
+Alerts are stored in `var/netops-autopilot.db`. Optionally, to browse the database in a web UI (requires Docker and the Compose plugin), run `docker compose up -d` and open <http://127.0.0.1:8080>. You can skip this and use the API commands above without affecting the demo.
 
 ### 7. Setting up container lab
 
