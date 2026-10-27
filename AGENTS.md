@@ -1,12 +1,12 @@
 # AI Agent Instructions & Context
 
-This document gives coding agents the project context and constraints needed to make focused, safe changes. The root `README.md` describes the current user-visible progress; architecture, roadmap, and safety details live under `docs/`.
+This document gives coding agents the project context and constraints needed to make focused, safe changes. The root `README.md` is the step-by-step demo guide, `CHANGELOG.md` tracks changes, and the current progress, architecture, roadmap, and safety details live under `docs/`.
 
 ## System Overview
 
 - **Purpose:** Evidence-first network incident investigation and approval-gated remediation.
 - **Core stack:** Python 3.12+, FastAPI, Pydantic, SQLite, and `uv`.
-- **Current release:** Alert validation, durable storage, duplicate detection, query and metrics endpoints, and a synthetic alert simulator are implemented and tested.
+- **Current release:** Alert validation, durable storage, duplicate detection, query and metrics endpoints, and a Grafana webhook adapter, and a synthetic alert simulator (random links and failure modes from the SR Linux lab topology) are implemented and tested.
 - **Not implemented yet:** Correlation, investigation, AI analysis, approval, and remediation packages currently define boundaries for future work. Do not describe them as working features.
 - **Network lab:** `srl-telemetry-lab-main/` is a separate Containerlab telemetry environment and is not automatically connected to the ingestion API.
 

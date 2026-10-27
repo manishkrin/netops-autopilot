@@ -2,6 +2,20 @@
 
 Each month ends with a demonstrable capability and evidence. Features do not advance merely because their code exists.
 
+## Current progress
+
+Month 1 is substantially complete; later months have only package boundaries.
+
+| Month 1 item | Status |
+|---|---|
+| API, durable SQLite storage, duplicate handling, health/metrics endpoints | Done |
+| Synthetic interface-flap simulator using SR Linux lab links and failure modes | Done |
+| Grafana webhook adapter | Implemented; not verified end to end against a running lab |
+| Tests, CI, clean-checkout demo (`scripts/demo.py`, README steps) | Done |
+| 1,000-submission benchmark | Local sequential baseline recorded in `docs/benchmarks/` |
+| Telemetry lab wired to the API | Manual steps documented in README; not automated |
+| Months 2–6 (correlation through production evidence) | Not started |
+
 ## Month 1 — simulator, webhook, and event store
 
 Ship the Python API, synthetic interface-flap generator, durable event storage, idempotent duplicate handling, health/metrics endpoints, tests, CI, and local run instructions.
