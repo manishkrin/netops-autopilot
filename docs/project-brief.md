@@ -49,4 +49,3 @@ A simulated router experiences interface flapping and emits 25 alerts. The platf
 - Dozens of microservices
 - Unsupervised changes to real devices
 - Claims of scale without benchmark data
-

@@ -44,6 +44,8 @@ Once the lab has been deployed, the different SR Linux nodes can be accessed via
 ssh admin@leaf1
 ssh admin@spine1
 
+password - NokiaSrl1!
+
 # reach a Linux client via Docker
 docker exec -it client1 bash
 ```
