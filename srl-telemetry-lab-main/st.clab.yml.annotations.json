@@ -445,6 +445,15 @@
       "iconCornerRadius": 0
     },
     {
+      "id": "sqlite-web",
+      "icon": "sqlite-web",
+      "position": {
+        "x": 640,
+        "y": 120
+      },
+      "groupId": "Telemetry Stack:1"
+    },
+    {
       "id": "spine1",
       "icon": "router",
       "position": {
