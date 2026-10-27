@@ -8,6 +8,55 @@ NetOps Autopilot ingests network alerts, stores each event once, and exposes the
 
 The demo is safe to run locally: it uses synthetic data and never changes network devices.
 
+## Recommended VM (macOS): OrbStack with Debian 12
+
+For a consistent Linux environment on macOS, use [OrbStack](https://orbstack.dev/) with Debian GNU/Linux 12 (bookworm). This setup is optional; you can also run the demo directly on macOS or Linux.
+
+Install OrbStack with Homebrew and launch the app once to complete setup:
+
+```bash
+brew install --cask orbstack
+```
+
+Then create and enter a Debian machine from a macOS terminal:
+
+```bash
+orb create debian:bookworm clab
+orb -m clab
+```
+
+Confirm the machine is running Debian 12:
+
+```bash
+cat /etc/os-release
+```
+
+Inside the VM, install [uv](https://docs.astral.sh/uv/getting-started/installation/) and the Python version required by this project:
+
+```bash
+uv python install 3.12
+```
+
+Then continue with the clone and install steps below from inside the VM. Docker and Containerlab are only needed for the optional lab steps.
+
+## Recommended environment (Windows): WSL 2
+
+On Windows 10 (version 2004 or newer) or Windows 11, [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install) provides a lightweight Linux environment, so a separate VM application is not needed. In an Administrator PowerShell, install WSL with Debian and restart if prompted:
+
+```powershell
+wsl --install -d Debian
+```
+
+Open Debian from the Start menu to finish its initial setup, then run the remaining commands from its terminal. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and Python 3.12:
+
+```bash
+uv python install 3.12
+```
+
+The WSL Debian image may use a newer release than Debian 12 (bookworm); check with `cat /etc/os-release` if the exact release matters. Keep the project files in the Linux filesystem (for example, under `~/`) for the best development experience. Docker and Containerlab are only needed for the optional lab steps.
+
+For the optional containerlab lab, use [Docker Desktop's WSL 2 integration](https://docs.docker.com/desktop/features/wsl/) and follow the [Containerlab on Windows guide](https://containerlab.dev/windows/). Avoid installing a separate Docker Engine inside the WSL distribution when using Docker Desktop integration.
+
 ## Reproduce the demo
 
 ### 1. Prerequisites
