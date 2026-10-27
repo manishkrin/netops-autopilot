@@ -126,7 +126,7 @@ An alert contains:
 List only interface-flap alerts for one device:
 
 ```bash
-curl 'http://127.0.0.1:8000/v1/alerts?device=router-edge-01&event_type=interface_flap&limit=10'
+curl 'http://127.0.0.1:8000/v1/alerts?device=spine2&event_type=interface_flap&limit=10'
 ```
 
 ## Configuration
