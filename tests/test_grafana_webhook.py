@@ -93,3 +93,58 @@ def test_grafana_webhook_defaults_severity_when_label_missing(client: TestClient
 def test_grafana_webhook_rejects_malformed_payload(client: TestClient) -> None:
     response = client.post("/v1/webhooks/grafana", json={"alerts": [{"status": "unknown"}]})
     assert response.status_code == 422
+
+
+def _extra_alert(fingerprint: str, **labels: str) -> dict[str, object]:
+    alert = dict(_grafana_payload("firing")["alerts"][0])  # type: ignore[index]
+    alert["fingerprint"] = fingerprint
+    alert["labels"] = {**alert["labels"], **labels}  # type: ignore[dict-item]
+    return alert
+
+
+def test_grafana_webhook_stores_valid_alerts_and_reports_invalid_ones(
+    client: TestClient,
+) -> None:
+    payload = _grafana_payload("firing")
+    payload["alerts"] = [
+        _extra_alert("good-1"),
+        _extra_alert("too-long", node="x" * 300),
+        _extra_alert("good-2"),
+    ]
+
+    response = client.post("/v1/webhooks/grafana", json=payload)
+
+    assert response.status_code == 202
+    body = response.json()
+    assert (body["received"], body["accepted"], body["duplicate"], body["rejected"]) == (
+        3,
+        2,
+        0,
+        1,
+    )
+    assert body["rejections"] == [
+        {
+            "index": 1,
+            "fingerprint": "too-long",
+            "errors": ["device: String should have at most 128 characters"],
+        }
+    ]
+    assert client.get("/v1/metrics").json()["stored_events"] == 2
+
+
+def test_grafana_webhook_rejects_fingerprint_that_cannot_form_event_id(
+    client: TestClient,
+) -> None:
+    payload = _grafana_payload("firing")
+    payload["alerts"] = [_extra_alert("not valid!")]
+
+    body = client.post("/v1/webhooks/grafana", json=payload).json()
+
+    assert body["accepted"] == 0
+    assert body["rejected"] == 1
+    assert body["rejections"][0]["errors"][0].startswith("event_id:")
+
+
+def test_grafana_webhook_empty_batch(client: TestClient) -> None:
+    body = client.post("/v1/webhooks/grafana", json={"alerts": []}).json()
+    assert (body["received"], body["accepted"], body["rejected"]) == (0, 0, 0)

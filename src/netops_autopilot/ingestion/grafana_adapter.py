@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from pydantic import ValidationError
+
 from netops_autopilot.ingestion.schemas import AlertInput, GrafanaAlert, Severity
 
 _KNOWN_SEVERITIES = {severity.value for severity in Severity}
@@ -61,5 +63,9 @@ def to_alert_input(alert: GrafanaAlert) -> AlertInput:
     )
 
 
-def to_alert_inputs(alerts: list[GrafanaAlert]) -> list[AlertInput]:
-    return [to_alert_input(alert) for alert in alerts]
+def describe_validation_error(error: ValidationError) -> list[str]:
+    """Flatten a validation error into short ``field: message`` strings."""
+    return [
+        f"{'.'.join(str(part) for part in item['loc']) or 'alert'}: {item['msg']}"
+        for item in error.errors(include_url=False, include_input=False, include_context=False)
+    ]

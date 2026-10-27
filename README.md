@@ -80,6 +80,14 @@ curl http://127.0.0.1:8000/v1/metrics
 
 The default database is created at `var/netops-autopilot.db`.
 
+### One-command demo
+
+To run the same scenario without managing a server or terminals, use the self-contained demo. It starts the API on a free port with a throwaway database, sends 25 alerts with every fifth replayed, asserts that exactly 20 events were stored, and exits non-zero on any mismatch. CI runs it on every push.
+
+```bash
+uv run python scripts/demo.py
+```
+
 ## Send an alert manually
 
 An example payload is available at [`examples/interface-flap-alert.json`](examples/interface-flap-alert.json).
@@ -110,6 +118,7 @@ An alert contains:
 |---|---|---|
 | `GET` | `/health` | Verify that the service and event store are available |
 | `POST` | `/v1/alerts` | Validate and ingest an alert |
+| `POST` | `/v1/webhooks/grafana` | Ingest a Grafana unified-alerting webhook batch; valid alerts are stored and malformed ones are listed under `rejections` |
 | `GET` | `/v1/alerts` | List alerts; optionally filter with `device` or `event_type` |
 | `GET` | `/v1/alerts/{event_id}` | Retrieve one alert |
 | `GET` | `/v1/metrics` | Return stored-event and severity counts |
@@ -188,7 +197,7 @@ Destroy the lab when finished:
 containerlab destroy --cleanup
 ```
 
-The telemetry lab and the NetOps Autopilot ingestion API are not connected automatically yet. The lab currently provides a realistic environment for later alert-webhook and diagnostic integration.
+The telemetry lab's Grafana contact point is configured to post to `POST /v1/webhooks/grafana` on the host, but this path has not been verified end to end against a running lab, and the lab is not started or wired up automatically. Run the API with `--host 0.0.0.0` and follow the lab guide to try it.
 
 ## Target lifecycle
 
@@ -217,13 +226,15 @@ uv run ruff check .
 uv run pytest --cov --cov-report=term-missing
 ```
 
-The project uses [pytest](https://docs.pytest.org/en/stable/) for tests, [coverage.py](https://coverage.readthedocs.io/) for branch coverage, and [Ruff](https://docs.astral.sh/ruff/) for linting. The configured minimum coverage is 80%.
+The project uses [pytest](https://docs.pytest.org/en/stable/) for tests, [coverage.py](https://coverage.readthedocs.io/) for branch coverage, and [Ruff](https://docs.astral.sh/ruff/) for linting. The configured minimum coverage is 80%. The suite includes end-to-end tests that run the simulator and the benchmark script against a real Uvicorn server, including a 1,000-submission run with duplicates.
 
 To measure a local sequential ingestion baseline while the API is running:
 
 ```bash
-uv run python scripts/benchmark_ingestion.py --count 1000
+uv run python scripts/benchmark_ingestion.py --count 1000 --out benchmark-results/run.json
 ```
+
+The script prints (and with `--out` saves) the raw result together with the commit, dirty-tree flag, Python and platform details, status counts, and the stored-event count before and after the run. It exits non-zero unless every response was `202` and the stored count grew by exactly the submission count. See [`docs/benchmarking.md`](docs/benchmarking.md) for what to record by hand.
 
 Benchmark results should be recorded with their environment and method under [`docs/benchmarks/`](docs/benchmarks/); do not compare unrecorded or incompatible runs.
 

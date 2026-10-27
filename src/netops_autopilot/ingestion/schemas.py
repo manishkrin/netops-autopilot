@@ -76,9 +76,19 @@ class GrafanaWebhookPayload(BaseModel):
     alerts: list[GrafanaAlert] = Field(default_factory=list)
 
 
+class WebhookRejection(BaseModel):
+    """An alert in a webhook batch that could not be mapped to a valid ``AlertInput``."""
+
+    index: int
+    fingerprint: str
+    errors: list[str]
+
+
 class WebhookIngestResult(BaseModel):
     received: int
     accepted: int
     duplicate: int
+    rejected: int = 0
     items: list[AlertIngestResult]
+    rejections: list[WebhookRejection] = Field(default_factory=list)
 

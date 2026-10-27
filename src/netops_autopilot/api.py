@@ -8,9 +8,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response, status
+from pydantic import ValidationError
 
 from netops_autopilot.config import Settings
-from netops_autopilot.ingestion.grafana_adapter import to_alert_inputs
+from netops_autopilot.ingestion.grafana_adapter import describe_validation_error, to_alert_input
 from netops_autopilot.ingestion.schemas import (
     AlertIngestResult,
     AlertInput,
@@ -19,6 +20,7 @@ from netops_autopilot.ingestion.schemas import (
     GrafanaWebhookPayload,
     IngestionMetrics,
     WebhookIngestResult,
+    WebhookRejection,
 )
 from netops_autopilot.ingestion.store import SQLiteAlertStore
 from netops_autopilot.logging import configure_logging
@@ -154,20 +156,38 @@ def create_app(database_path: Path | None = None) -> FastAPI:
 
         Converts the incoming Grafana alerts into internal alert inputs,
         ingests each one, and tallies how many were newly accepted versus
-        duplicates.
+        duplicates. An alert that cannot be mapped to a valid internal alert
+        (for example an over-long label) is reported in ``rejections`` and does
+        not prevent the rest of the batch from being stored, so Grafana does
+        not retry the whole payload.
 
         Args:
             payload: The Grafana webhook payload containing one or more
                 alerts.
 
         Returns:
-            A summary of the webhook ingestion, including per-alert results
-            and aggregate accepted/duplicate counts.
+            A summary of the webhook ingestion, including per-alert results,
+            rejected alerts, and aggregate accepted/duplicate/rejected counts.
         """
         items: list[AlertIngestResult] = []
+        rejections: list[WebhookRejection] = []
         accepted = 0
         duplicate = 0
-        for alert in to_alert_inputs(payload.alerts):
+        for index, grafana_alert in enumerate(payload.alerts):
+            try:
+                alert = to_alert_input(grafana_alert)
+            except ValidationError as error:
+                rejection = WebhookRejection(
+                    index=index,
+                    fingerprint=grafana_alert.fingerprint,
+                    errors=describe_validation_error(error),
+                )
+                LOGGER.warning(
+                    "webhook_alert_rejected",
+                    extra={"fields": {"index": index, "errors": rejection.errors}},
+                )
+                rejections.append(rejection)
+                continue
             stored, created = store.ingest(alert)
             if created:
                 accepted += 1
@@ -177,7 +197,12 @@ def create_app(database_path: Path | None = None) -> FastAPI:
                 AlertIngestResult(status="accepted" if created else "duplicate", alert=stored)
             )
         return WebhookIngestResult(
-            received=len(items), accepted=accepted, duplicate=duplicate, items=items
+            received=len(payload.alerts),
+            accepted=accepted,
+            duplicate=duplicate,
+            rejected=len(rejections),
+            items=items,
+            rejections=rejections,
         )
 
     @application.get("/v1/alerts", response_model=AlertList, tags=["ingestion"])
