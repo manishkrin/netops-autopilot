@@ -1,15 +1,18 @@
 {
-  "event_id": "example-router-edge-01-0001",
-  "source": "example-generator",
-  "device": "router-edge-01",
-  "interface": "GigabitEthernet0/1",
+  "event_id": "sim-79dc1c4d3cd2-00003",
+  "source": "netops-simulator",
+  "device": "spine2",
+  "interface": "e1-1",
   "event_type": "interface_flap",
   "severity": "critical",
   "observed_at": "2026-10-11T10:00:00Z",
   "message": "Interface changed state to down",
   "attributes": {
     "scenario": "interface-flap",
+    "peer_device": "leaf1",
+    "peer_interface": "e1-50",
+    "failure_mode": "link-down",
+    "lab": "srl-telemetry-lab",
     "synthetic": true
   }
 }
-

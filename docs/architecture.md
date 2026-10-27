@@ -13,12 +13,12 @@
 
 | Module | Responsibility | Current state |
 |---|---|---|
-| Ingestion | Validate, persist, retrieve, and deduplicate alerts | Working vertical slice |
+| Ingestion | Validate, persist, retrieve, and deduplicate alerts; Grafana webhook adapter | Working vertical slice (webhook path not yet verified against a live lab) |
 | Correlation | Group events into incidents using explainable rules | Boundary scaffolded |
 | Investigation | Run simulated commands and store evidence | Boundary scaffolded |
 | AI analysis | Produce schema-validated, cited hypotheses | Boundary scaffolded |
 | Remediation | Policy, approval, Ansible execution, verification, rollback | Boundary scaffolded |
-| Simulator | Generate safe, reproducible network events | Working vertical slice |
+| Simulator | Generate safe, reproducible interface-flap events on random links of the SR Linux lab topology | Working vertical slice |
 
 ## Initial deployment
 

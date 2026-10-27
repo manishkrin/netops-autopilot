@@ -1,0 +1,26 @@
+# Grafana file-based alerting provisioning: contact point.
+# Docs: https://grafana.com/docs/grafana/latest/alerting/configure-notifications/manage-contact-points/
+#
+# Grafana runs inside the "st" containerlab/docker network and cannot reach
+# the netops-autopilot FastAPI server unless that server is also reachable
+# from inside the network. The simplest option in this lab is to run the
+# FastAPI app on the host (e.g. `uvicorn netops_autopilot.api:app --host
+# 0.0.0.0 --port 8000`) and point this contact point at the host's address
+# on the "st" docker bridge network (its gateway IP), since containers can
+# always reach the host via that gateway.
+#
+# Find your gateway IP with:
+#   docker network inspect st --format '{{(index .IPAM.Config 0).Gateway}}'
+# and replace 172.80.80.1 below if it differs.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: netops-autopilot
+    receivers:
+      - uid: netops-autopilot-webhook
+        type: webhook
+        settings:
+          url: http://172.80.80.1:8000/v1/webhooks/grafana
+          httpMethod: POST
+        disableResolveMessage: false

@@ -1,0 +1,1 @@
+uv run uvicorn netops_autopilot.api:app --reload

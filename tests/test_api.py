@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+
 from fastapi.testclient import TestClient
 
 
@@ -63,3 +65,17 @@ def test_missing_event_returns_404(client: TestClient) -> None:
     response = client.get("/v1/alerts/does-not-exist")
     assert response.status_code == 404
 
+
+
+def test_concurrent_duplicate_deliveries_store_one_event(
+    client: TestClient, alert_payload: dict[str, object]
+) -> None:
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        responses = list(
+            pool.map(lambda _: client.post("/v1/alerts", json=alert_payload), range(48))
+        )
+
+    statuses = sorted(response.status_code for response in responses)
+    assert statuses.count(202) == 1
+    assert statuses.count(200) == 47
+    assert client.get("/v1/metrics").json()["stored_events"] == 1

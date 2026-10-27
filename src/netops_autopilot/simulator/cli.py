@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import time
 import urllib.error
 import urllib.request
@@ -10,6 +11,20 @@ from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+# Point-to-point links from the srl-telemetry-lab topology (st.clab.yml).
+LAB_LINKS: tuple[tuple[str, str, str, str], ...] = (
+    ("spine1", "e1-1", "leaf1", "e1-49"),
+    ("spine1", "e1-2", "leaf2", "e1-49"),
+    ("spine1", "e1-3", "leaf3", "e1-49"),
+    ("spine2", "e1-1", "leaf1", "e1-50"),
+    ("spine2", "e1-2", "leaf2", "e1-50"),
+    ("spine2", "e1-3", "leaf3", "e1-50"),
+    ("leaf1", "e1-1", "client1", "eth1"),
+    ("leaf2", "e1-1", "client2", "eth1"),
+    ("leaf3", "e1-1", "client3", "eth1"),
+)
+FAILURE_MODES: tuple[str, ...] = ("link-down", "admin-disable", "optic-failure", "peer-reboot")
+
 
 def generate_alerts(
     *,
@@ -17,7 +32,25 @@ def generate_alerts(
     duplicate_every: int = 0,
     run_id: str | None = None,
 ) -> Iterator[dict[str, Any]]:
-    """Generate interface-flap submissions; every Nth can replay its predecessor."""
+    """Generate synthetic interface-flap alerts based on the srl-telemetry-lab topology.
+
+    Alerts alternate between "down" (critical) and "up" (warning). Each down/up pair
+    targets one randomly chosen lab link (see ``LAB_LINKS``) and failure mode (see
+    ``FAILURE_MODES``); choices are seeded from the run ID so a run is reproducible.
+
+    Args:
+        count: Number of alerts to yield; must be at least 1.
+        duplicate_every: If set, every Nth alert reuses the previous event ID to
+            simulate a replay. Must be 0 (disabled) or at least 2.
+        run_id: Optional simulation identifier used for event IDs and seeding;
+            a random one is generated when omitted.
+
+    Yields:
+        Alert payloads compatible with ``AlertInput``.
+
+    Raises:
+        ValueError: If ``count`` or ``duplicate_every`` is out of range.
+    """
     if count < 1:
         raise ValueError("count must be at least 1")
     if duplicate_every == 1 or duplicate_every < 0:
@@ -26,6 +59,7 @@ def generate_alerts(
     simulation_id = run_id or uuid.uuid4().hex[:12]
     base_time = datetime.now(UTC)
     previous_event_id: str | None = None
+    rng = random.Random(simulation_id)  # noqa: S311 - synthetic data, not security-sensitive
     for index in range(count):
         is_duplicate = bool(duplicate_every and (index + 1) % duplicate_every == 0)
         event_id = previous_event_id if is_duplicate else f"sim-{simulation_id}-{index:05d}"
@@ -34,11 +68,15 @@ def generate_alerts(
         if not is_duplicate:
             previous_event_id = event_id
         interface_up = index % 2 == 1
+        if index % 2 == 0:  # each down/up pair shares one link and failure mode
+            link = rng.choice(LAB_LINKS)
+            failure_mode = rng.choice(FAILURE_MODES)
+        device, interface, peer_device, peer_interface = link
         yield {
             "event_id": event_id,
             "source": "netops-simulator",
-            "device": "router-edge-01",
-            "interface": "GigabitEthernet0/1",
+            "device": device,
+            "interface": interface,
             "event_type": "interface_flap",
             "severity": "warning" if interface_up else "critical",
             "observed_at": (base_time + timedelta(milliseconds=index * 100)).isoformat(),
@@ -47,6 +85,10 @@ def generate_alerts(
                 "scenario": "interface-flap",
                 "simulation_id": simulation_id,
                 "sequence": index,
+                "peer_device": peer_device,
+                "peer_interface": peer_interface,
+                "failure_mode": "recovered" if interface_up else failure_mode,
+                "lab": "srl-telemetry-lab",
                 "synthetic": True,
             },
         }

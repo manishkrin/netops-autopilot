@@ -1,0 +1,16 @@
+# Grafana file-based alerting provisioning: notification policy.
+# Routes alerts from the "NetOps Alerts" folder (where interface-down-rules.yml
+# provisions its rules) to the netops-autopilot contact point defined in
+# contact-points.yml, instead of Grafana's default no-op receiver.
+# Docs: https://grafana.com/docs/grafana/latest/alerting/configure-notifications/create-notification-policy/
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: netops-autopilot
+    group_by: ["alertname", "node"]
+    routes:
+      - receiver: netops-autopilot
+        object_matchers:
+          - ["severity", "=~", "critical|warning|info"]
+        continue: false

@@ -139,6 +139,19 @@ topology:
       ports:
         - 3100:3100
 
+    ### NETOPS AUTOPILOT DB UI ###
+    sqlite-web:
+      kind: linux
+      mgmt-ipv4: 172.80.80.47
+      image: coleifer/sqlite-web
+      binds:
+        - ../var:/data
+      env:
+        SQLITE_DATABASE: netops-autopilot.db
+      ports:
+        - 8080:8080
+      group: tools
+
   links:
     - endpoints: ["spine1:e1-1", "leaf1:e1-49"]
     - endpoints: ["spine1:e1-2", "leaf2:e1-49"]

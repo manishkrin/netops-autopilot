@@ -1,16 +1,5 @@
 # Nokia SR Linux Streaming Telemetry Lab
 
-[![Discord][discord-svg]][discord-url] [![DevPod][devpod-svg]][devpod-url] [![Codespaces][codespaces-svg]][codespaces-url]  
-![w212][w212][Learn more](https://containerlab.dev/macos/#devpod) ![w90][w90][Learn more](https://containerlab.dev/manual/codespaces)
-
-[discord-svg]: https://gitlab.com/rdodin/pics/-/wikis/uploads/b822984bc95d77ba92d50109c66c7afe/join-discord-btn.svg
-[discord-url]: https://discord.gg/tZvgjQ6PZf
-[devpod-svg]: https://gitlab.com/rdodin/pics/-/wikis/uploads/dfc36636ecaa60f3e70340686d5800db/open-in-devpod-btn.svg
-[devpod-url]: https://devpod.sh/open#https://github.com/srl-labs/srl-telemetry-lab
-[codespaces-svg]: https://gitlab.com/rdodin/pics/-/wikis/uploads/80546a8c7cda8bb14aa799d26f55bd83/run-codespaces-btn.svg
-[codespaces-url]: https://codespaces.new/srl-labs/srl-telemetry-lab?quickstart=1&devcontainer_path=.devcontainer%2Fdocker-in-docker%2Fdevcontainer.json
-[w212]: https://gitlab.com/rdodin/pics/-/wikis/uploads/718a32dfa2b375cb07bcac50ae32964a/w212h1.svg
-[w90]: https://gitlab.com/rdodin/pics/-/wikis/uploads/bf1b8ea28b4528eb1b66567355a13c5c/w90h1.svg
 
 SR Linux has first-class Streaming Telemetry support thanks to [100% YANG coverage](https://learn.srlinux.dev/yang/) of state and config data. The holistic coverage enables SR Linux users to stream **any** data off of the NOS with on-change, sample, or target-defined support. A discrepancy in visibility across APIs is not about SR Linux.
 
@@ -54,6 +43,8 @@ Once the lab has been deployed, the different SR Linux nodes can be accessed via
 # reach a SR Linux leaf or a spine via SSH
 ssh admin@leaf1
 ssh admin@spine1
+
+password - NokiaSrl1!
 
 # reach a Linux client via Docker
 docker exec -it client1 bash
@@ -125,12 +116,19 @@ Using the flow plugin and real telemetry data users can create interactive topol
 
 The panels for the flow plugin has been autocreated by the [clab-io-draw](https://github.com/srl-labs/clab-io-draw) tool
 
+### netops-autopilot alert database UI
+
+The `sqlite-web` node runs [coleifer/sqlite-web](https://hub.docker.com/r/coleifer/sqlite-web), binding the repository's [`../var/`](../var) directory so that `../var/netops-autopilot.db` (the default `NETOPS_DATABASE_PATH`) can be browsed and queried from a web UI whenever the lab is deployed. If `NETOPS_DATABASE_PATH` is pointed at a different file, update the `SQLITE_DATABASE` env value for the `sqlite-web` node in [st.clab.yml](st.clab.yml) to match.
+
+The topology drawing uses custom icons stored in [`.clab-icons/`](.clab-icons/). Each node's annotation in [st.clab.yml.annotations.json](st.clab.yml.annotations.json) sets `icon` to the icon file's basename, so `sqlite-web` uses `.clab-icons/sqlite-web.svg`.
+
 ### Access details
 
 Using containerlab's ability to expose ports of the containers to the host, the following services are available on the host machine:
 
 * Grafana: <http://localhost:3000>. Anonymous access is enabled; no credentials are required. If you want to act as an admin, use `admin/admin` credentials.
 * Prometheus: <http://localhost:9090/graph>
+* netops-autopilot alert database (sqlite-web): <http://localhost:8080>
 
 ### Alerting
 
@@ -140,10 +138,26 @@ The lab currently ships one rule, [interface-down-rules.yml](configs/grafana/ale
 
 * **Leaf1 Interface Down** (folder `NetOps Alerts`, group `interface-health`) queries `interface_oper_state{source="leaf1", interface_name=~"e1-1|e1-49|e1-50"}` from Prometheus and fires when any of those interfaces reports `0` (down) for at least 10 seconds.
 * The query is scoped to only the interfaces actually cabled for leaf1 in [st.clab.yml](st.clab.yml) (`e1-1` to `client1`, `e1-49` to `spine1`, `e1-50` to `spine2`). Leaf1's remaining ethernet ports are unconnected and legitimately report `oper-state: down`, so they are excluded to avoid alert noise.
-* View it in Grafana under **Alerting → Alert rules → NetOps Alerts → Leaf1 Interface Down**. No notification contact point is configured out of the box (the rule uses Grafana's default no-op receiver), so firing alerts are visible in the UI/dashboard but are not emailed or paged anywhere. Add a contact point and notification policy if you want real notifications.
+* View it in Grafana under **Alerting → Alert rules → NetOps Alerts → Leaf1 Interface Down**.
 * To test it, admin-disable one of the three cabled interfaces on leaf1 (e.g. `ethernet-1/49`) via its SR Linux CLI and watch the rule transition from `Normal` to `Pending` to `Alerting` in the Grafana Alerting page.
 
 The [Prometheus datasource](configs/grafana/datasource.yml) is provisioned with a fixed `uid` (`PBFA97CFB590B2093`) so that alert rules referencing it remain valid across redeploys.
+
+#### Forwarding alerts to netops-autopilot
+
+[configs/grafana/alerting/contact-points.yml](configs/grafana/alerting/contact-points.yml) and
+[configs/grafana/alerting/notification-policies.yml](configs/grafana/alerting/notification-policies.yml)
+route firing/resolved alerts from a Grafana `webhook` contact point to the
+netops-autopilot FastAPI server's `POST /v1/webhooks/grafana` endpoint, which
+translates Grafana's native alert payload into the `AlertInput` schema and
+ingests it the same way as `POST /v1/alerts`.
+
+To use it end to end:
+
+1. Start the API on the host so the `grafana` container can reach it: `uvicorn netops_autopilot.api:app --host 0.0.0.0 --port 8000`.
+2. Confirm the contact point's webhook URL matches your `st` docker network gateway: `docker network inspect st --format '{{(index .IPAM.Config 0).Gateway}}'`. Update `configs/grafana/alerting/contact-points.yml` if it differs from `172.80.80.1`, then `containerlab deploy --reconfigure`.
+3. Admin-disable `ethernet-1/49` on leaf1 (see above). Once the rule reaches `Alerting`, Grafana POSTs to the contact point and the alert appears via `GET /v1/alerts` (and `GET /v1/metrics`) on the API.
+4. Re-enable the interface (`admin-state enable` + `commit now`) to see the matching `resolved` alert ingested as a separate event.
 
 ## Logging stack
 
